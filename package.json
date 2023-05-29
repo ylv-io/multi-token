@@ -1,24 +1,15 @@
 {
-  "name": "@prb/foundry-template",
-  "description": "Foundry-based template for developing Solidity smart contracts",
+  "name": "multi-token",
+  "description": "",
   "version": "1.0.0",
   "author": {
-    "name": "Paul Razvan Berg",
-    "url": "https://github.com/PaulRBerg"
+    "name": "Igor Yalovoy",
   },
   "devDependencies": {
     "prettier": "^2.8.7",
     "solhint": "^3.4.0"
   },
-  "keywords": [
-    "blockchain",
-    "ethereum",
-    "forge",
-    "foundry",
-    "smart-contracts",
-    "solidity",
-    "template"
-  ],
+  "keywords": [],
   "private": true,
   "scripts": {
     "clean": "rm -rf cache out",
