@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "./MultiToken.sol";
 
 contract WrappedERC20 is IERC20, IERC20Metadata {
-  MultiToken public immutable _multiToken;
+  MultiToken private immutable _multiToken;
   string private _name;
   string private _symbol;
 
