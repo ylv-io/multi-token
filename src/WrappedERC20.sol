@@ -21,6 +21,11 @@ contract WrappedERC20 is IERC20, IERC20Metadata {
     _symbol = symbol_;
   }
 
+  modifier onlyMultiToken() {
+    require(msg.sender == address(_multiToken), "Sender is not a multitoken");
+    _;
+  }
+
   function name() public view virtual override returns (string memory) {
     return _name;
   }
@@ -47,6 +52,14 @@ contract WrappedERC20 is IERC20, IERC20Metadata {
     return true;
   }
 
+  function emitTransfer(
+    address from,
+    address to,
+    uint256 amount
+  ) external onlyMultiToken {
+    emit Transfer(from, to, amount);
+  }
+
   function allowance(address owner, address spender) public view override returns (uint256) {
     return _multiToken.allowance(address(this), owner, spender);
   }
@@ -55,6 +68,14 @@ contract WrappedERC20 is IERC20, IERC20Metadata {
     _multiToken.approve(address(this), msg.sender, spender, amount);
     emit Approval(msg.sender, spender, amount);
     return true;
+  }
+
+  function emitApprove(
+    address owner,
+    address spender,
+    uint256 amount
+  ) external onlyMultiToken {
+    emit Approval(owner, spender, amount);
   }
 
   function transferFrom(

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.18 <0.9.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+
+import "./WrappedERC20.sol";
 
 contract MultiToken is Ownable {
   event Transfer(address indexed token, address indexed from, address indexed to, uint256 value);
@@ -20,6 +21,8 @@ contract MultiToken is Ownable {
     require(_tokens[token], "MultiToken: Not a valid token");
     _;
   }
+
+  constructor() Ownable(msg.sender) {}
 
   function totalSupply(address token) public view returns (uint256) {
     return _totalSupply[token];
@@ -74,38 +77,41 @@ contract MultiToken is Ownable {
     return true;
   }
 
-
   function _mint(
     address token,
-    address account,
+    address to,
     uint256 amount
   ) internal {
-    require(account != address(0), "ERC20: mint to the zero address");
+    require(to != address(0), "ERC20: mint to the zero address");
 
     _totalSupply[token] += amount;
     unchecked {
       // Overflow not possible: balance + amount is at most totalSupply + amount, which is checked above.
-      _balances[token][account] += amount;
+      _balances[token][to] += amount;
     }
-    emit Transfer(token, address(0), account, amount);
+    emit Transfer(token, address(0), to, amount);
+    // Emit Transfer event on the token as well
+    WrappedERC20(token).emitTransfer(address(0), to, amount);
   }
 
   function _burn(
     address token,
-    address account,
+    address from,
     uint256 amount
   ) internal {
-    require(account != address(0), "ERC20: burn from the zero address");
+    require(from != address(0), "ERC20: burn from the zero address");
 
-    uint256 accountBalance = _balances[token][account];
+    uint256 accountBalance = _balances[token][from];
     require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
     unchecked {
-      _balances[token][account] = accountBalance - amount;
+      _balances[token][from] = accountBalance - amount;
       // Overflow not possible: amount <= accountBalance <= totalSupply.
       _totalSupply[token] -= amount;
     }
 
-    emit Transfer(token, account, address(0), amount);
+    emit Transfer(token, from, address(0), amount);
+    // Emit Transfer event on the token as well
+    WrappedERC20(token).emitTransfer(from, address(0), amount);
   }
 
   function _transfer(
@@ -127,6 +133,8 @@ contract MultiToken is Ownable {
     }
 
     emit Transfer(token, from, to, amount);
+    // Emit Transfer event on the token as well
+    WrappedERC20(token).emitTransfer(from, to, amount);
   }
 
   function _approve(
@@ -140,6 +148,8 @@ contract MultiToken is Ownable {
 
     _allowances[token][owner][spender] = amount;
     emit Approval(token, owner, spender, amount);
+    // Emit Approval event on the token as well
+    WrappedERC20(token).emitApprove(owner, spender, amount);
   }
 
   function _spendAllowance(
