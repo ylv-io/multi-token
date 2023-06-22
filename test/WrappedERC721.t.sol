@@ -7,10 +7,56 @@ import { StdCheats } from "forge-std/StdCheats.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 import { WrappedERC721 } from "../src/WrappedERC721.sol";
 import { MultiTokenERC721 } from "../src/MultiTokenERC721.sol";
 import { MockMultiTokenERC721 } from "./utils/mock/MockMultiTokenERC721.sol";
+
+contract ERC721Recipient is IERC721Receiver {
+  address public operator;
+  address public from;
+  uint256 public id;
+  bytes public data;
+
+  function onERC721Received(
+    address _operator,
+    address _from,
+    uint256 _id,
+    bytes calldata _data
+  ) public virtual override returns (bytes4) {
+    operator = _operator;
+    from = _from;
+    id = _id;
+    data = _data;
+
+    return IERC721Receiver.onERC721Received.selector;
+  }
+}
+
+contract RevertingERC721Recipient is IERC721Receiver {
+  function onERC721Received(
+    address,
+    address,
+    uint256,
+    bytes calldata
+  ) public virtual override returns (bytes4) {
+    revert(string(abi.encodePacked(IERC721Receiver.onERC721Received.selector)));
+  }
+}
+
+contract WrongReturnDataERC721Recipient is IERC721Receiver {
+  function onERC721Received(
+    address,
+    address,
+    uint256,
+    bytes calldata
+  ) public virtual override returns (bytes4) {
+    return 0xCAFEBEEF;
+  }
+}
+
+contract NonERC721Recipient {}
 
 contract WrappedERC721Test is PRBTest, StdCheats, IERC721Errors {
   MockMultiTokenERC721 internal multiToken;
@@ -72,5 +118,108 @@ contract WrappedERC721Test is PRBTest, StdCheats, IERC721Errors {
     token.setApprovalForAll(address(0xBEEF), true);
 
     assertTrue(token.isApprovedForAll(address(this), address(0xBEEF)));
+  }
+
+  function testTransferFrom() public {
+    address from = address(0xABCD);
+
+    multiToken.mint(address(token), from, 1337);
+
+    vm.prank(from);
+    token.approve(address(this), 1337);
+
+    token.transferFrom(from, address(0xBEEF), 1337);
+
+    assertEq(token.getApproved(1337), address(0));
+    assertEq(token.ownerOf(1337), address(0xBEEF));
+    assertEq(token.balanceOf(address(0xBEEF)), 1);
+    assertEq(token.balanceOf(from), 0);
+  }
+
+  function testTransferFromSelf() public {
+    multiToken.mint(address(token), address(this), 1337);
+
+    token.transferFrom(address(this), address(0xBEEF), 1337);
+
+    assertEq(token.getApproved(1337), address(0));
+    assertEq(token.ownerOf(1337), address(0xBEEF));
+    assertEq(token.balanceOf(address(0xBEEF)), 1);
+    assertEq(token.balanceOf(address(this)), 0);
+  }
+
+  function testTransferFromApproveAll() public {
+    address from = address(0xABCD);
+
+    multiToken.mint(address(token), from, 1337);
+
+    vm.prank(from);
+    token.setApprovalForAll(address(this), true);
+
+    token.transferFrom(from, address(0xBEEF), 1337);
+
+    assertEq(token.getApproved(1337), address(0));
+    assertEq(token.ownerOf(1337), address(0xBEEF));
+    assertEq(token.balanceOf(address(0xBEEF)), 1);
+    assertEq(token.balanceOf(from), 0);
+  }
+
+  function testSafeTransferFromToEOA() public {
+    address from = address(0xABCD);
+
+    multiToken.mint(address(token), from, 1337);
+
+    vm.prank(from);
+    token.setApprovalForAll(address(this), true);
+
+    token.safeTransferFrom(from, address(0xBEEF), 1337);
+
+    assertEq(token.getApproved(1337), address(0));
+    assertEq(token.ownerOf(1337), address(0xBEEF));
+    assertEq(token.balanceOf(address(0xBEEF)), 1);
+    assertEq(token.balanceOf(from), 0);
+  }
+
+  function testSafeTransferFromToERC721Recipient() public {
+    address from = address(0xABCD);
+    ERC721Recipient recipient = new ERC721Recipient();
+
+    multiToken.mint(address(token), from, 1337);
+
+    vm.prank(from);
+    token.setApprovalForAll(address(this), true);
+
+    token.safeTransferFrom(from, address(recipient), 1337);
+
+    assertEq(token.getApproved(1337), address(0));
+    assertEq(token.ownerOf(1337), address(recipient));
+    assertEq(token.balanceOf(address(recipient)), 1);
+    assertEq(token.balanceOf(from), 0);
+
+    assertEq(recipient.operator(), address(this));
+    assertEq(recipient.from(), from);
+    assertEq(recipient.id(), 1337);
+    assertEq(recipient.data(), "");
+  }
+
+  function testSafeTransferFromToERC721RecipientWithData() public {
+    address from = address(0xABCD);
+    ERC721Recipient recipient = new ERC721Recipient();
+
+    multiToken.mint(address(token), from, 1337);
+
+    vm.prank(from);
+    token.setApprovalForAll(address(this), true);
+
+    token.safeTransferFrom(from, address(recipient), 1337, "testing 123");
+
+    assertEq(token.getApproved(1337), address(0));
+    assertEq(token.ownerOf(1337), address(recipient));
+    assertEq(token.balanceOf(address(recipient)), 1);
+    assertEq(token.balanceOf(from), 0);
+
+    assertEq(recipient.operator(), address(this));
+    assertEq(recipient.from(), from);
+    assertEq(recipient.id(), 1337);
+    assertEq(recipient.data(), "testing 123");
   }
 }
