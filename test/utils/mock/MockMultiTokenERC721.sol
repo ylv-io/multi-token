@@ -13,4 +13,8 @@ contract MockMultiTokenERC721 is MultiTokenERC721 {
   ) public {
     _mint(token, to, tokenId);
   }
+
+  function burn(address token, uint256 tokenId) public {
+    _burn(token, tokenId);
+  }
 }
