@@ -61,6 +61,7 @@ contract MultiTokenERC721 is Ownable, IERC721Errors {
    */
   function approve(
     address token,
+    address sender,
     address to,
     uint256 tokenId
   ) public virtual {
@@ -69,8 +70,8 @@ contract MultiTokenERC721 is Ownable, IERC721Errors {
       revert ERC721InvalidOperator(owner);
     }
 
-    if (msg.sender != owner && !isApprovedForAll(token, owner, msg.sender)) {
-      revert ERC721InvalidApprover(msg.sender);
+    if (sender != owner && !isApprovedForAll(token, owner, sender)) {
+      revert ERC721InvalidApprover(sender);
     }
 
     _approve(token, to, tokenId);
@@ -90,10 +91,11 @@ contract MultiTokenERC721 is Ownable, IERC721Errors {
    */
   function setApprovalForAll(
     address token,
+    address sender,
     address operator,
     bool approved
   ) public virtual {
-    _setApprovalForAll(token, msg.sender, operator, approved);
+    _setApprovalForAll(token, sender, operator, approved);
   }
 
   /**
@@ -112,12 +114,13 @@ contract MultiTokenERC721 is Ownable, IERC721Errors {
    */
   function transferFrom(
     address token,
+    address sender,
     address from,
     address to,
     uint256 tokenId
   ) public virtual {
-    if (!_isApprovedOrOwner(token, msg.sender, tokenId)) {
-      revert ERC721InsufficientApproval(msg.sender, tokenId);
+    if (!_isApprovedOrOwner(token, sender, tokenId)) {
+      revert ERC721InsufficientApproval(sender, tokenId);
     }
 
     _transfer(token, from, to, tokenId);
@@ -128,11 +131,12 @@ contract MultiTokenERC721 is Ownable, IERC721Errors {
    */
   function safeTransferFrom(
     address token,
+    address sender,
     address from,
     address to,
     uint256 tokenId
   ) public virtual {
-    safeTransferFrom(token, from, to, tokenId, "");
+    safeTransferFrom(token, sender, from, to, tokenId, "");
   }
 
   /**
@@ -140,15 +144,16 @@ contract MultiTokenERC721 is Ownable, IERC721Errors {
    */
   function safeTransferFrom(
     address token,
+    address sender,
     address from,
     address to,
     uint256 tokenId,
     bytes memory data
   ) public virtual {
-    if (!_isApprovedOrOwner(token, msg.sender, tokenId)) {
-      revert ERC721InsufficientApproval(msg.sender, tokenId);
+    if (!_isApprovedOrOwner(token, sender, tokenId)) {
+      revert ERC721InsufficientApproval(sender, tokenId);
     }
-    _safeTransfer(token, from, to, tokenId, data);
+    _safeTransfer(token, sender, from, to, tokenId, data);
   }
 
   /**
@@ -171,13 +176,14 @@ contract MultiTokenERC721 is Ownable, IERC721Errors {
    */
   function _safeTransfer(
     address token,
+    address sender,
     address from,
     address to,
     uint256 tokenId,
     bytes memory data
   ) internal virtual {
     _transfer(token, from, to, tokenId);
-    if (!_checkOnERC721Received(from, to, tokenId, data)) {
+    if (!_checkOnERC721Received(sender, from, to, tokenId, data)) {
       revert ERC721InvalidReceiver(to);
     }
   }
@@ -229,10 +235,11 @@ contract MultiTokenERC721 is Ownable, IERC721Errors {
    */
   function _safeMint(
     address token,
+    address sender,
     address to,
     uint256 tokenId
   ) internal virtual {
-    _safeMint(token, to, tokenId, "");
+    _safeMint(token, sender, to, tokenId, "");
   }
 
   /**
@@ -241,12 +248,13 @@ contract MultiTokenERC721 is Ownable, IERC721Errors {
    */
   function _safeMint(
     address token,
+    address sender,
     address to,
     uint256 tokenId,
     bytes memory data
   ) internal virtual {
     _mint(token, to, tokenId);
-    if (!_checkOnERC721Received(address(0), to, tokenId, data)) {
+    if (!_checkOnERC721Received(sender, address(0), to, tokenId, data)) {
       revert ERC721InvalidReceiver(to);
     }
   }
@@ -435,13 +443,14 @@ contract MultiTokenERC721 is Ownable, IERC721Errors {
    * @return bool whether the call correctly returned the expected magic value
    */
   function _checkOnERC721Received(
+    address sender,
     address from,
     address to,
     uint256 tokenId,
     bytes memory data
   ) private returns (bool) {
     if (to.code.length > 0) {
-      try IERC721Receiver(to).onERC721Received(msg.sender, from, tokenId, data) returns (bytes4 retval) {
+      try IERC721Receiver(to).onERC721Received(sender, from, tokenId, data) returns (bytes4 retval) {
         return retval == IERC721Receiver.onERC721Received.selector;
       } catch (bytes memory reason) {
         if (reason.length == 0) {

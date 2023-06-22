@@ -85,7 +85,7 @@ contract WrappedERC721 is IERC721, IERC721Metadata, ERC165, IERC721Errors {
    * @dev See {IERC721-approve}.
    */
   function approve(address to, uint256 tokenId) public virtual {
-    _multiToken.approve(address(this), to, tokenId);
+    _multiToken.approve(address(this), msg.sender, to, tokenId);
   }
 
   /**
@@ -99,7 +99,7 @@ contract WrappedERC721 is IERC721, IERC721Metadata, ERC165, IERC721Errors {
    * @dev See {IERC721-setApprovalForAll}.
    */
   function setApprovalForAll(address operator, bool approved) public virtual {
-    _multiToken.setApprovalForAll(address(this), operator, approved);
+    _multiToken.setApprovalForAll(address(this), msg.sender, operator, approved);
   }
 
   /**
@@ -117,7 +117,7 @@ contract WrappedERC721 is IERC721, IERC721Metadata, ERC165, IERC721Errors {
     address to,
     uint256 tokenId
   ) public virtual {
-    _multiToken.transferFrom(address(this), from, to, tokenId);
+    _multiToken.transferFrom(address(this), msg.sender, from, to, tokenId);
   }
 
   /**
@@ -128,7 +128,7 @@ contract WrappedERC721 is IERC721, IERC721Metadata, ERC165, IERC721Errors {
     address to,
     uint256 tokenId
   ) public virtual {
-    _multiToken.safeTransferFrom(address(this), from, to, tokenId);
+    _multiToken.safeTransferFrom(address(this), msg.sender, from, to, tokenId);
   }
 
   /**
@@ -140,7 +140,7 @@ contract WrappedERC721 is IERC721, IERC721Metadata, ERC165, IERC721Errors {
     uint256 tokenId,
     bytes memory data
   ) public virtual {
-    _multiToken.safeTransferFrom(address(this), from, to, tokenId, data);
+    _multiToken.safeTransferFrom(address(this), msg.sender, from, to, tokenId, data);
   }
 
   function emitTransfer(
