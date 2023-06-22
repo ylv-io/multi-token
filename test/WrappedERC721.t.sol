@@ -222,4 +222,124 @@ contract WrappedERC721Test is PRBTest, StdCheats, IERC721Errors {
     assertEq(recipient.id(), 1337);
     assertEq(recipient.data(), "testing 123");
   }
+
+  function testFailMintToZero() public {
+    multiToken.mint(address(token), address(0), 1337);
+  }
+
+  function testFailDoubleMint() public {
+    multiToken.mint(address(token), address(0xBEEF), 1337);
+    multiToken.mint(address(token), address(0xBEEF), 1337);
+  }
+
+  function testFailBurnUnMinted() public {
+    multiToken.burn(address(token), 1337);
+  }
+
+  function testFailDoubleBurn() public {
+    multiToken.mint(address(token), address(0xBEEF), 1337);
+
+    multiToken.burn(address(token), 1337);
+    multiToken.burn(address(token), 1337);
+  }
+
+  function testFailApproveUnMinted() public {
+    token.approve(address(0xBEEF), 1337);
+  }
+
+  function testFailApproveUnAuthorized() public {
+    multiToken.mint(address(token), address(0xCAFE), 1337);
+
+    token.approve(address(0xBEEF), 1337);
+  }
+
+  function testFailTransferFromUnOwned() public {
+    token.transferFrom(address(0xFEED), address(0xBEEF), 1337);
+  }
+
+  function testFailTransferFromWrongFrom() public {
+    multiToken.mint(address(token), address(0xCAFE), 1337);
+
+    token.transferFrom(address(0xFEED), address(0xBEEF), 1337);
+  }
+
+  function testFailTransferFromToZero() public {
+    multiToken.mint(address(token), address(this), 1337);
+
+    token.transferFrom(address(this), address(0), 1337);
+  }
+
+  function testFailTransferFromNotOwner() public {
+    multiToken.mint(address(token), address(0xFEED), 1337);
+
+    token.transferFrom(address(0xFEED), address(0xBEEF), 1337);
+  }
+
+  function testFailSafeTransferFromToNonERC721Recipient() public {
+    multiToken.mint(address(token), address(this), 1337);
+
+    token.safeTransferFrom(address(this), address(new NonERC721Recipient()), 1337);
+  }
+
+  function testFailSafeTransferFromToNonERC721RecipientWithData() public {
+    multiToken.mint(address(token), address(this), 1337);
+
+    token.safeTransferFrom(address(this), address(new NonERC721Recipient()), 1337, "testing 123");
+  }
+
+  function testFailSafeTransferFromToRevertingERC721Recipient() public {
+    multiToken.mint(address(token), address(this), 1337);
+
+    token.safeTransferFrom(address(this), address(new RevertingERC721Recipient()), 1337);
+  }
+
+  function testFailSafeTransferFromToRevertingERC721RecipientWithData() public {
+    multiToken.mint(address(token), address(this), 1337);
+
+    token.safeTransferFrom(address(this), address(new RevertingERC721Recipient()), 1337, "testing 123");
+  }
+
+  function testFailSafeTransferFromToERC721RecipientWithWrongReturnData() public {
+    multiToken.mint(address(token), address(this), 1337);
+
+    token.safeTransferFrom(address(this), address(new WrongReturnDataERC721Recipient()), 1337);
+  }
+
+  function testFailSafeTransferFromToERC721RecipientWithWrongReturnDataWithData() public {
+    multiToken.mint(address(token), address(this), 1337);
+
+    token.safeTransferFrom(address(this), address(new WrongReturnDataERC721Recipient()), 1337, "testing 123");
+  }
+
+  function testFailSafeMintToNonERC721Recipient() public {
+    multiToken.safeMint(address(token), address(new NonERC721Recipient()), 1337);
+  }
+
+  function testFailSafeMintToNonERC721RecipientWithData() public {
+    multiToken.safeMint(address(token), address(new NonERC721Recipient()), 1337, "testing 123");
+  }
+
+  function testFailSafeMintToRevertingERC721Recipient() public {
+    multiToken.safeMint(address(token), address(new RevertingERC721Recipient()), 1337);
+  }
+
+  function testFailSafeMintToRevertingERC721RecipientWithData() public {
+    multiToken.safeMint(address(token), address(new RevertingERC721Recipient()), 1337, "testing 123");
+  }
+
+  function testFailSafeMintToERC721RecipientWithWrongReturnData() public {
+    multiToken.safeMint(address(token), address(new WrongReturnDataERC721Recipient()), 1337);
+  }
+
+  function testFailSafeMintToERC721RecipientWithWrongReturnDataWithData() public {
+    multiToken.safeMint(address(token), address(new WrongReturnDataERC721Recipient()), 1337, "testing 123");
+  }
+
+  function testFailBalanceOfZeroAddress() public view {
+    token.balanceOf(address(0));
+  }
+
+  function testFailOwnerOfUnminted() public view {
+    token.ownerOf(1337);
+  }
 }
